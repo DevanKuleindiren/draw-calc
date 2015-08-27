@@ -1,0 +1,14 @@
+#Apple
+*.DS_Store
+
+#XCode
+Draw\ Calc.xcodeproj
+*.xcassets
+*.xcdatamodeld
+*.plist
+
+#Datasets
+*.txt
+
+#Images
+*.png
