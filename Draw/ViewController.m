@@ -7,7 +7,6 @@
 //
 
 #import "ViewController.h"
-#import "DeepNet.h"
 
 @interface ViewController () {
     
@@ -20,12 +19,10 @@
 - (void) initialiseVariables;
 - (void) updateMinMaxPoints:(CGPoint)point;
 - (CGRect) generateLooseRectWithTightRect:(CGRect) tightRect;
-- (void) drawRectBoundsWithLooseRect:(CGRect)looseRect tightRect:(CGRect)tightRect;
 - (void) classifyWithBound:(CGRect)bound;
 
 
 @end
-
 
 const int inputNodesNo = 785;
 const int hiddenNeuronNo = 15;
@@ -42,8 +39,7 @@ const int outputNeuronNo = 10;
     
     [self initialiseVariables];
     
-    // Prediction field
-    
+    // Prediction text field
     UIView *paddingView = [[UIView alloc] initWithFrame:CGRectMake(0, 0, 15, 20)];
     predictionField.leftView = paddingView;
     predictionField.leftViewMode = UITextFieldViewModeAlways;
@@ -77,7 +73,7 @@ const int outputNeuronNo = 10;
         CGRect tightRect = CGRectMake(minXPoint, minYPoint, maxXPoint - minXPoint, maxYPoint - minYPoint);
         CGRect looseRect = [self generateLooseRectWithTightRect:tightRect];
         
-        if (debugMode) [self drawRectBoundsWithLooseRect:looseRect tightRect:tightRect];
+        if (debugMode) [Debug drawRectBoundsWithLooseRect:looseRect tightRect:tightRect onImageView:self.baseLayer inViewController:self];
         
         [self classifyWithBound:looseRect];
         [self initialiseVariables];
@@ -172,6 +168,7 @@ const int outputNeuronNo = 10;
     if (point.y > maxYPoint) maxYPoint = point.y;
 }
 
+// L - lesser, G - greater
 - (CGRect) generateSquareWithMinL:(int)minL maxL:(int)maxL minG:(int)minG maxG:(int)maxG isYG:(BOOL)isYG {
     minL -= 35;
     minG -= 35;
@@ -198,65 +195,6 @@ const int outputNeuronNo = 10;
     else return CGRectMake(minG + 1, minL + 1, maxG - minG, maxL - minL);
 }
 
-- (Matrix *) extractRawImageData:(UIImage *)image fromX:(int)x fromY:(int)y with28Multiple:(int)multiple {
-    
-    // First get the image into your data buffer
-    CGImageRef imageRef = [image CGImage];
-    NSUInteger width = CGImageGetWidth(imageRef);
-    NSUInteger height = CGImageGetHeight(imageRef);
-    CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
-    unsigned char *rawData = (unsigned char*) calloc(height * width * 4, sizeof(unsigned char));
-    NSUInteger bytesPerPixel = 4;
-    NSUInteger bytesPerRow = bytesPerPixel * width;
-    NSUInteger bitsPerComponent = 8;
-    CGContextRef context = CGBitmapContextCreate(rawData, width, height,
-                                                 bitsPerComponent, bytesPerRow, colorSpace,
-                                                 kCGImageAlphaPremultipliedLast | kCGBitmapByteOrder32Big);
-    CGColorSpaceRelease(colorSpace);
-    
-    CGContextDrawImage(context, CGRectMake(0, 0, width, height), imageRef);
-    CGContextRelease(context);
-    
-    Matrix *inputVector = [[Matrix alloc] initWithRows:1 cols:inputNodesNo];
-    Matrix *test = [[Matrix alloc] initWithRows:28 cols:28];
-    
-    for (int row = 0; row < 28; row++) {
-        for (int col = 0; col < 28; col++) {
-            double sum = 0;
-            
-            for (int subRow = 0; subRow < multiple; subRow++) {
-                NSUInteger byteIndex = (bytesPerRow * (y + (row * multiple) + subRow)) + ((x + (col * multiple)) * bytesPerPixel);
-                for (int subCol = 0; subCol < multiple; subCol++) {
-                    sum += rawData[byteIndex + 3];
-                    byteIndex += bytesPerPixel;
-                }
-            }
-            
-            sum = floor(sum / (multiple * multiple));
-            
-            [test insertObjectAtRow:row col:col obj:[NSNumber numberWithDouble:sum]];
-            [inputVector insertObjectAtRow:0 col:((row * 28) + col) obj:[NSNumber numberWithDouble:sum]];
-        }
-    }
-    
-    [inputVector insertObjectAtRow:0 col:(inputNodesNo - 1) obj:[NSNumber numberWithDouble:0]];
-    [inputVector insertObjectAtRow:0 col:0 obj:[NSNumber numberWithDouble:-1]];
-    free(rawData);
-    
-    return inputVector;
-}
-
-- (void) displayInput:(NSArray *)input {
-    NSMutableString *row = [[NSMutableString alloc] initWithString:@""];
-    for (NSArray *a in input) {
-        for (NSNumber *n in a) {
-            [row appendString:[NSString stringWithFormat:@"%d", [n intValue]]];
-        }
-        NSLog(row, nil);
-        [row setString:@""];
-    }
-}
-
 - (CGRect) generateLooseRectWithTightRect:(CGRect)tightRect {
     if (tightRect.size.height > tightRect.size.width) {
         return [self generateSquareWithMinL:tightRect.origin.x
@@ -271,29 +209,8 @@ const int outputNeuronNo = 10;
     }
 }
 
-- (void) drawRectBoundsWithLooseRect:(CGRect)looseRect tightRect:(CGRect)tightRect {
-    UIGraphicsBeginImageContext(self.view.frame.size);
-    [self.baseLayer.image drawInRect:CGRectMake(0, 0, self.view.frame.size.width, self.view.frame.size.height)];
-    CGContextSetLineCap(UIGraphicsGetCurrentContext(), kCGLineCapRound);
-    
-    
-    // Add tight rectangular bound
-    CGContextSetLineWidth(UIGraphicsGetCurrentContext(), 2);
-    CGContextSetRGBStrokeColor(UIGraphicsGetCurrentContext(), 0, 10.0, 0, 1.0);
-    CGContextAddRect(UIGraphicsGetCurrentContext(), tightRect);
-    CGContextStrokePath(UIGraphicsGetCurrentContext());
-    
-    // Add loose 28 multiple square bound
-    CGContextSetLineWidth(UIGraphicsGetCurrentContext(), 10);
-    CGContextSetRGBStrokeColor(UIGraphicsGetCurrentContext(), 0, 255, 0, 1.0);
-    CGContextAddRect(UIGraphicsGetCurrentContext(), looseRect);
-    CGContextStrokePath(UIGraphicsGetCurrentContext());
-    CGContextFlush(UIGraphicsGetCurrentContext());
-    self.baseLayer.image = UIGraphicsGetImageFromCurrentImageContext();
-}
-
 - (void) classifyWithBound:(CGRect)bound {
-    Matrix *inputVector = [self extractRawImageData:self.baseLayer.image fromX:bound.origin.x fromY:bound.origin.y with28Multiple:(bound.size.width / 28)];
+    Matrix *inputVector = [self.baseLayer.image extractRawImageDataFromX:bound.origin.x fromY:bound.origin.y with28Multiple:(bound.size.width / 28) andInputNodesNo:inputNodesNo];
     
     DeepNet *neuralNetwork = [[DeepNet alloc] initWithInputNodes:inputNodesNo hiddenNeurons:hiddenNeuronNo outputNeurons:outputNeuronNo];
     Matrix *outputVector = [neuralNetwork useNetWithInputs:inputVector andBeta:1.0];

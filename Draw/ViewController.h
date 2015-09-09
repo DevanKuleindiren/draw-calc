@@ -7,6 +7,9 @@
 //
 
 #import <UIKit/UIKit.h>
+#import "Debug.h"
+#import "DeepNet.h"
+#import "UIImage+UIImage_PixelInteraction.h"
 
 @interface ViewController : UIViewController {
     
