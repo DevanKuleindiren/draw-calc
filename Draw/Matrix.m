@@ -17,6 +17,8 @@
 
 @implementation Matrix
 
+@synthesize matrix;
+
 - (void) insertObjectAtRow:(int)row col:(int)col obj:(id)obj {
     @try {
         [matrix[row] replaceObjectAtIndex:col withObject:obj];
@@ -119,45 +121,6 @@
     }
     
     return m;
-}
-
-- (void) printMatrix {
-    NSMutableString *temp = [[NSMutableString alloc] init];
-    int row, col = 0;
-    for (NSArray *a in matrix) {
-        for (NSNumber *n in a) {
-            [temp appendString:[NSString stringWithFormat:@"Matrix[%d][%d] = %@\n", row, col, n]];
-            col++;
-        }
-        row++;
-        [temp appendString:@"\n"];
-    }
-    NSLog(temp, nil);
-}
-
-- (void) printMatrixIntValue {
-    NSMutableString *temp = [[NSMutableString alloc] init];
-    [temp appendString:@"5,"];
-    int row, col = 0;
-    for (NSArray *a in matrix) {
-        for (NSNumber *n in a) {
-            [temp appendString:[NSString stringWithFormat:@"Matrix[%d][%d] = %d\n", row, col, [n intValue]]];
-            col++;
-        }
-        row++;
-    }
-    NSLog(temp, nil);
-}
-
-- (void) printMatrixIntValueFlat {
-    NSMutableString *temp = [[NSMutableString alloc] init];
-    [temp appendString:@"5,"];
-    for (NSArray *a in matrix) {
-        for (NSNumber *n in a) {
-            [temp appendString:[NSString stringWithFormat:@"%d,", [n intValue]]];
-        }
-    }
-    NSLog(temp, nil);
 }
 
 @end

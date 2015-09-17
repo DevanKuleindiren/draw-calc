@@ -32,4 +32,41 @@
     iV.image = UIGraphicsGetImageFromCurrentImageContext();
 }
 
++ (void) printMatrix:(Matrix *)M {
+    NSMutableString *temp = [[NSMutableString alloc] init];
+    int row, col = 0;
+    for (NSMutableArray *a in M.matrix) {
+        for (NSNumber *n in a) {
+            [temp appendString:[NSString stringWithFormat:@"Matrix[%d][%d] = %@\n", row, col, n]];
+            col++;
+        }
+        row++;
+        [temp appendString:@"\n"];
+    }
+    NSLog(temp, nil);
+}
+
++ (void) printMatrixIntValue:(Matrix *)M {
+    NSMutableString *temp = [[NSMutableString alloc] init];
+    int row, col = 0;
+    for (NSMutableArray *a in M.matrix) {
+        for (NSNumber *n in a) {
+            [temp appendString:[NSString stringWithFormat:@"Matrix[%d][%d] = %d\n", row, col, [n intValue]]];
+            col++;
+        }
+        row++;
+    }
+    NSLog(temp, nil);
+}
+
++ (void) printMatrixIntValueFlat:(Matrix *)M {
+    NSMutableString *temp = [[NSMutableString alloc] init];
+    for (NSMutableArray *a in M.matrix) {
+        for (NSNumber *n in a) {
+            [temp appendString:[NSString stringWithFormat:@"%d,", [n intValue]]];
+        }
+    }
+    NSLog(temp, nil);
+}
+
 @end

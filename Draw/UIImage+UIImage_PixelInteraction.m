@@ -10,9 +10,8 @@
 
 @implementation UIImage (UIImage_PixelInteraction)
 
-- (Matrix *) extractRawImageDataFromX:(int)x fromY:(int)y with28Multiple:(int)multiple andInputNodesNo:(int)inputNodesNo {
+- (unsigned char *) extractRawImageData {
     
-    // First get the image into the data buffer
     CGImageRef imageRef = [self CGImage];
     NSUInteger width = CGImageGetWidth(imageRef);
     NSUInteger height = CGImageGetHeight(imageRef);
@@ -29,6 +28,22 @@
     CGContextDrawImage(context, CGRectMake(0, 0, width, height), imageRef);
     CGContextRelease(context);
     
+    NSLog(@"%lu", (unsigned long)width);
+    NSLog(@"%lu", (unsigned long)height);
+    NSLog(@"%lu", sizeof(rawData));
+    
+    return rawData;
+}
+
+- (Matrix *) extractRawImageDataFromX:(int)x fromY:(int)y with28Multiple:(int)multiple andInputNodesNo:(int)inputNodesNo {
+    
+    unsigned char *rawData = [self extractRawImageData];
+    
+    CGImageRef imageRef = [self CGImage];
+    NSUInteger width = CGImageGetWidth(imageRef);
+    NSUInteger bytesPerPixel = 4;
+    NSUInteger bytesPerRow = bytesPerPixel * width;
+    
     Matrix *inputVector = [[Matrix alloc] initWithRows:1 cols:inputNodesNo];
     Matrix *test = [[Matrix alloc] initWithRows:28 cols:28];
     
@@ -37,10 +52,9 @@
             double sum = 0;
             
             for (int subRow = 0; subRow < multiple; subRow++) {
-                NSUInteger byteIndex = (bytesPerRow * (y + (row * multiple) + subRow)) + ((x + (col * multiple)) * bytesPerPixel);
                 for (int subCol = 0; subCol < multiple; subCol++) {
+                    NSUInteger byteIndex = (bytesPerRow * (y + (row * multiple) + subRow)) + ((x + (col * multiple) + subCol) * bytesPerPixel);
                     sum += rawData[byteIndex + 3];
-                    byteIndex += bytesPerPixel;
                 }
             }
             
@@ -57,5 +71,7 @@
     
     return inputVector;
 }
+
+
 
 @end

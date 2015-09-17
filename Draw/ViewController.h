@@ -28,10 +28,13 @@
     BOOL mouseSwiped;
     
     IBOutlet UITextField *predictionField;
+    IBOutlet UIButton *evaluateButton;
     IBOutlet UILabel *confidenceLabel;
 }
 
 @property (strong, nonatomic) IBOutlet UIImageView *baseLayer;
+
+- (IBAction)evaluate:(id)sender;
 
 @end
 

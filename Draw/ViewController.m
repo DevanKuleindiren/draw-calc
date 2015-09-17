@@ -14,6 +14,7 @@
     NSTimer *timeSinceTouchTimer;
     
     BOOL debugMode;
+    BOOL evaluatedImage;
 }
 
 - (void) initialiseVariables;
@@ -36,6 +37,7 @@ const int outputNeuronNo = 10;
     // Initialise variables
     brush = 12.0;
     debugMode = NO;
+    evaluatedImage = NO;
     
     [self initialiseVariables];
     
@@ -51,7 +53,6 @@ const int outputNeuronNo = 10;
     [tapRecogniser setNumberOfTapsRequired:2];
     [self.view addGestureRecognizer:tapRecogniser];
     
-    
     // Do any additional setup after loading the view, typically from a nib.
 }
 
@@ -63,23 +64,6 @@ const int outputNeuronNo = 10;
     maxYPoint = 0;
 }
 
-- (void) updateTimeSinceTouch {
-    timeSinceTouch++;
-    NSLog(@"WORKS");
-    
-    if (timeSinceTouch > 6) {
-        [timeSinceTouchTimer invalidate];
-        
-        CGRect tightRect = CGRectMake(minXPoint, minYPoint, maxXPoint - minXPoint, maxYPoint - minYPoint);
-        CGRect looseRect = [self generateLooseRectWithTightRect:tightRect];
-        
-        if (debugMode) [Debug drawRectBoundsWithLooseRect:looseRect tightRect:tightRect onImageView:self.baseLayer inViewController:self];
-        
-        [self classifyWithBound:looseRect];
-        [self initialiseVariables];
-    }
-}
-
 - (void) toggleDebugMode:(UITapGestureRecognizer *)gestureRecogniser {
     debugMode = !debugMode;
     if (!debugMode) [confidenceLabel setText:@""];
@@ -88,10 +72,9 @@ const int outputNeuronNo = 10;
 
 - (void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event {
     
-    timeSinceTouch = 0;
-    
-    if (![timeSinceTouchTimer isValid]) {
+    if (evaluatedImage) {
         self.baseLayer.image = nil;
+        evaluatedImage = NO;
     }
     
     mouseSwiped = NO;
@@ -148,16 +131,14 @@ const int outputNeuronNo = 10;
 }
 
 - (void) touchesEnded:(NSSet *)touches withEvent:(UIEvent *)event {
-    // Initialise timer
+    
+    
+    UITouch *touch = [touches anyObject];
+    CGPoint currentPoint = [touch locationInView:self.view];
+    NSLog(@"X:%f, Y:%f", currentPoint.x, currentPoint.y);
+    
     if ([predictionField isFirstResponder]) {
         [predictionField resignFirstResponder];
-        if ([timeSinceTouchTimer isValid]) [timeSinceTouchTimer invalidate];
-    } else {
-        if ([timeSinceTouchTimer isValid]) {
-            timeSinceTouch = 0;
-        } else {
-            timeSinceTouchTimer = [NSTimer scheduledTimerWithTimeInterval:0.05 target:self selector:@selector(updateTimeSinceTouch) userInfo:nil repeats:YES];
-        }
     }
 }
 
@@ -210,6 +191,8 @@ const int outputNeuronNo = 10;
 }
 
 - (void) classifyWithBound:(CGRect)bound {
+    
+    NSLog(@"FROM X: %f, FROM Y: %f", bound.origin.x, bound.origin.y);
     Matrix *inputVector = [self.baseLayer.image extractRawImageDataFromX:bound.origin.x fromY:bound.origin.y with28Multiple:(bound.size.width / 28) andInputNodesNo:inputNodesNo];
     
     DeepNet *neuralNetwork = [[DeepNet alloc] initWithInputNodes:inputNodesNo hiddenNeurons:hiddenNeuronNo outputNeurons:outputNeuronNo];
@@ -229,10 +212,32 @@ const int outputNeuronNo = 10;
     
     for (int i = 0; i < 10; i++) {
         if ([[outputVector row:0 col:i] doubleValue] == 1.0) {
-            NSLog(@"PREDICTION: %d", i);
             [predictionField setText:[NSString stringWithFormat:@"%@%d", predictionField.text, i]];
         }
     }
+}
+
+- (IBAction)evaluate:(id)sender {
+    
+    // APP IS READY TO CLASSIFY:
+    /*
+        1. Get an array of vertical separators from some segmentation algorithm
+        2. For each pair of separators,
+            - Classify the image within the bounds of the separator (treating out of bounds as white)
+            - Add the classification result of this image to the end of a string
+        3. Parse that string and output the answer
+     */
+    
+    
+    CGRect tightRect = CGRectMake(minXPoint, minYPoint, maxXPoint - minXPoint, maxYPoint - minYPoint);
+    CGRect looseRect = [self generateLooseRectWithTightRect:tightRect];
+    
+    if (debugMode) [Debug drawRectBoundsWithLooseRect:looseRect tightRect:tightRect onImageView:self.baseLayer inViewController:self];
+    
+    [self classifyWithBound:looseRect];
+    [self initialiseVariables];
+    
+    evaluatedImage = YES;
 }
 
 

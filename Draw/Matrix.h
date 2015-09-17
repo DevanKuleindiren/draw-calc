@@ -15,6 +15,7 @@
 
 @property (readonly) int rows;
 @property (readonly) int cols;
+@property (readonly) NSMutableArray *matrix;
 
 - (Matrix *) initWithRows:(int)noRows cols:(int)noCols;
 - (void) insertObjectAtRow:(int)row col:(int)col obj:(id)obj;
@@ -24,8 +25,5 @@
 - (Matrix *) add:(Matrix *)mtx;
 - (Matrix *) subtract:(Matrix *)mtx;
 - (Matrix *) scalarMultiply:(double)scalar;
-- (void) printMatrix;
-- (void) printMatrixIntValue;
-- (void) printMatrixIntValueFlat;
 
 @end

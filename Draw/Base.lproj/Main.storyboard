@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="7706" systemVersion="14D136" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" initialViewController="vXZ-lx-hvc">
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="7706" systemVersion="14E46" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" initialViewController="vXZ-lx-hvc">
     <dependencies>
         <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="7703"/>
         <capability name="Constraints to layout margins" minToolsVersion="6.0"/>
@@ -37,14 +37,31 @@
                                 <color key="textColor" cocoaTouchSystemColor="darkTextColor"/>
                                 <nil key="highlightedColor"/>
                             </label>
+                            <button opaque="NO" contentMode="scaleToFill" misplaced="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="Y2w-kd-yRK">
+                                <rect key="frame" x="0.0" y="490" width="600" height="50"/>
+                                <color key="backgroundColor" red="0.30196078431372547" green="0.72156862745098038" blue="0.4392156862745098" alpha="1" colorSpace="calibratedRGB"/>
+                                <constraints>
+                                    <constraint firstAttribute="height" constant="50" id="eCI-at-NxH"/>
+                                </constraints>
+                                <fontDescription key="fontDescription" name="Menlo-Bold" family="Menlo" pointSize="80"/>
+                                <state key="normal" title="=">
+                                    <color key="titleColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
+                                </state>
+                                <connections>
+                                    <action selector="evaluate:" destination="vXZ-lx-hvc" eventType="touchUpInside" id="3zI-5m-kD2"/>
+                                </connections>
+                            </button>
                         </subviews>
                         <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="calibratedWhite"/>
                         <constraints>
                             <constraint firstItem="2fi-mo-0CV" firstAttribute="top" secondItem="JqG-tn-Thn" secondAttribute="bottom" id="3Y1-7u-mRE"/>
+                            <constraint firstItem="Y2w-kd-yRK" firstAttribute="leading" secondItem="kh9-bI-dsS" secondAttribute="leadingMargin" constant="-16" id="5o1-99-YWa"/>
                             <constraint firstItem="MiP-5M-C7h" firstAttribute="top" secondItem="jyV-Pf-zRb" secondAttribute="bottom" id="6Cj-Dw-Zhe"/>
                             <constraint firstItem="BDq-Pe-pfN" firstAttribute="trailing" secondItem="kh9-bI-dsS" secondAttribute="trailingMargin" id="6gV-ZY-UQK"/>
                             <constraint firstItem="JqG-tn-Thn" firstAttribute="leading" secondItem="kh9-bI-dsS" secondAttribute="leadingMargin" constant="-16" id="Kw2-jf-fuQ"/>
                             <constraint firstAttribute="trailingMargin" secondItem="JqG-tn-Thn" secondAttribute="trailing" constant="-16" id="OLm-S7-KIQ"/>
+                            <constraint firstAttribute="trailingMargin" secondItem="Y2w-kd-yRK" secondAttribute="trailing" constant="-16" id="elE-rt-Jkp"/>
+                            <constraint firstItem="BDq-Pe-pfN" firstAttribute="top" secondItem="Y2w-kd-yRK" secondAttribute="bottom" constant="30" id="mJG-6N-YoM"/>
                             <constraint firstAttribute="trailingMargin" secondItem="MiP-5M-C7h" secondAttribute="trailing" constant="-16" id="mLS-Yf-f8Y"/>
                             <constraint firstItem="JqG-tn-Thn" firstAttribute="top" secondItem="kh9-bI-dsS" secondAttribute="topMargin" id="oh3-Bb-p3D"/>
                             <constraint firstItem="BDq-Pe-pfN" firstAttribute="trailing" secondItem="kh9-bI-dsS" secondAttribute="trailingMargin" id="tfX-up-jcf"/>
@@ -55,6 +72,7 @@
                     <connections>
                         <outlet property="baseLayer" destination="JqG-tn-Thn" id="IDS-Ww-EhT"/>
                         <outlet property="confidenceLabel" destination="BDq-Pe-pfN" id="ng2-ia-DYg"/>
+                        <outlet property="evaluateButton" destination="Y2w-kd-yRK" id="kuh-sY-WSN"/>
                         <outlet property="predictionField" destination="MiP-5M-C7h" id="4V2-ve-yhW"/>
                     </connections>
                 </viewController>
