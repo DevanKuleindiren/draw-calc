@@ -10,6 +10,7 @@
 #import "Debug.h"
 #import "DeepNet.h"
 #import "UIImage+UIImage_PixelInteraction.h"
+#import "ExpressionParser.h"
 
 @interface ViewController : UIViewController {
     

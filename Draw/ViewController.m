@@ -38,7 +38,7 @@ const int outputNeuronNo = 10;
     brush = 12.0;
     debugMode = NO;
     evaluatedImage = NO;
-    
+        
     [self initialiseVariables];
     
     // Prediction text field
@@ -52,6 +52,15 @@ const int outputNeuronNo = 10;
     [tapRecogniser setNumberOfTouchesRequired:1];
     [tapRecogniser setNumberOfTapsRequired:2];
     [self.view addGestureRecognizer:tapRecogniser];
+    
+    NSString *result = [ExpressionParser parseExpressionWithNoBrackets:@"2-3d0"];
+    NSLog(@"RESULT: %@", result);
+    
+    NSString *result2 = [ExpressionParser parseExpressionWithNoBrackets:@"-4x5d2-8"];
+    NSLog(@"RESULT: %@", result2);
+    
+    NSString *result3 = [ExpressionParser parseExpressionWithNoBrackets:@"5-2+3"];
+    NSLog(@"RESULT: %@", result3);
     
     // Do any additional setup after loading the view, typically from a nib.
 }

@@ -7,7 +7,10 @@
 //
 
 #import <Foundation/Foundation.h>
+#import "MutableStringStack.h"
 
 @interface ExpressionParser : NSObject
+
++ (NSString *) parseExpressionWithNoBrackets:(NSString *) expression;
 
 @end
