@@ -57,6 +57,7 @@ const int outputNeuronNo = 10;
     
     if (evaluatedImage) {
         self.baseLayer.image = nil;
+        predictionField.text = @"";
         evaluatedImage = NO;
     }
     
@@ -111,7 +112,6 @@ const int outputNeuronNo = 10;
 
 - (void) touchesEnded:(NSSet *)touches withEvent:(UIEvent *)event {
     
-    
     UITouch *touch = [touches anyObject];
     CGPoint currentPoint = [touch locationInView:self.view];
     NSLog(@"X:%f, Y:%f", currentPoint.x, currentPoint.y);
@@ -137,16 +137,46 @@ const int outputNeuronNo = 10;
     
     unsigned char *rawData = [self.baseLayer.image extractRawImageData];
     
-    unsigned char *labels = [self.baseLayer.image labelConnectedComponentsIn:rawData];
+    double *labels = [self.baseLayer.image labelConnectedComponentsIn:rawData];
+    unsigned char *order = (unsigned char *) calloc(64, sizeof(unsigned char));
+    
+    for (int i = 0; i < 64; i++) {
+        order[i] = i;
+    }
     
     NSMutableString *output = [[NSMutableString alloc] initWithString:@""];
+    // Sort them by increasing mean x position
+    BOOL isComplete = NO;
+    while (!isComplete) {
+        isComplete = YES;
+        for (int i = 1; i < 64; i++) {
+            if (labels[(i * 3) + 1] < labels[((i - 1) * 3) + 1]) {
+                double tempI = order[i];
+                double tempC = labels[i * 3];
+                double tempX = labels[(i * 3) + 1];
+                double tempY = labels[(i * 3) + 2];
+                order[i] = order[i - 1];
+                labels[i * 3] = labels[(i - 1) * 3];
+                labels[(i * 3) + 1] = labels[((i - 1) * 3) + 1];
+                labels[(i * 3) + 2] = labels[((i - 1) * 3) + 2];
+                order[i - 1] = tempI;
+                labels[(i - 1) * 3] = tempC;
+                labels[((i - 1) * 3) + 1] = tempX;
+                labels[((i - 1) * 3) + 2] = tempY;
+                isComplete = NO;
+            }
+        }
+    }
+    
+    // Classify the components with a significant number of pixels
     for (int i = 0; i < 64; i++) {
-        if (labels[i] != 0) {
-            [output appendString:[self classifyWithRawData:rawData andLabel:i]];
+        if (labels[i * 3] > 10) {
+            NSLog(@"MEAN X: %f, MEAN Y: %f", labels[(i * 3) + 1], labels[(i * 3) + 2]);
+            [output appendString:[self classifyWithRawData:rawData andLabel:order[i]]];
         }
     }
 
-    [predictionField setText:[NSString stringWithFormat:@"%@%@", predictionField.text, output]];
+    [predictionField setText:[NSString stringWithFormat:@"%@%@", predictionField.text, [ExpressionParser parseExpressionWithNoBrackets:output]]];
     
     free(labels);
     free(rawData);

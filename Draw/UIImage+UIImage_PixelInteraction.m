@@ -88,16 +88,18 @@
     return inputVector;
 }
 
-- (unsigned char *) labelConnectedComponentsIn:(unsigned char *) rawData {
+- (double *) labelConnectedComponentsIn:(unsigned char *) rawData {
     
     // There can be a maximum of 64 labels
-    unsigned char *labels = (unsigned char*) calloc(64 * 3, sizeof(unsigned char));
+    double *labels = (double*) calloc(64 * 3, sizeof(double));
     
     int currentLabel = 1;
     for (int y = 0; y < self.size.height; y++) {
         for (int x = 0; x < self.size.width; x++) {
             if ([self getPixelFromRawData:rawData x:x y:y] > 0 && [self getLabelFromRawData:rawData x:x y:y] == 0) {
                 [self setLabelInRawData:rawData x:x y:y value:currentLabel];
+                labels[(currentLabel * 3) + 1] = ((labels[(currentLabel * 3) + 1] * labels[currentLabel * 3]) + x) / (labels[currentLabel * 3] + 1);
+                labels[(currentLabel * 3) + 2] = ((labels[(currentLabel * 3) + 2] * labels[currentLabel * 3]) + y) / (labels[currentLabel * 3] + 1);
                 labels[currentLabel * 3]++;
                 PixelQueue *neighbourQ = [[PixelQueue alloc] init];
                 [neighbourQ push:[[Pixel alloc] initWithX:x Y:y]];
@@ -109,7 +111,9 @@
                         for (int xDiff = current.x - 1; xDiff <= current.x + 1; xDiff++) {
                             if ([self getPixelFromRawData:rawData x:xDiff y:yDiff] > 0 && [self getLabelFromRawData:rawData x:xDiff y:yDiff] == 0) {
                                 [self setLabelInRawData:rawData x:xDiff y:yDiff value:currentLabel];
-                                labels[currentLabel]++;
+                                labels[(currentLabel * 3) + 1] = ((labels[(currentLabel * 3) + 1] * labels[currentLabel * 3]) + xDiff) / (labels[currentLabel * 3] + 1);
+                                labels[(currentLabel * 3) + 2] = ((labels[(currentLabel * 3) + 2] * labels[currentLabel * 3]) + yDiff) / (labels[currentLabel * 3] + 1);
+                                labels[currentLabel * 3]++;
                                 [neighbourQ push:[[Pixel alloc] initWithX:xDiff Y:yDiff]];
                             }
                         }

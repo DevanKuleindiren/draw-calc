@@ -16,6 +16,6 @@
 
 - (unsigned char *) extractRawImageData;
 - (Matrix *) extractInputVectorFromRawData:(unsigned char *)rawData fromX:(int)x fromY:(int)y with28Multiple:(int)multiple inputNodesNo:(int)inputNodesNo label:(unsigned char)label;
-- (unsigned char *) labelConnectedComponentsIn:(unsigned char *) rawData;
+- (double *) labelConnectedComponentsIn:(unsigned char *) rawData;
 
 @end
