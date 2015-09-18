@@ -136,53 +136,54 @@ const int outputNeuronNo = 14;
     
     unsigned char *rawData = [self.baseLayer.image extractRawImageData];
     
-    double *labels = [self.baseLayer.image labelConnectedComponentsIn:rawData];
-    unsigned char *order = (unsigned char *) calloc(64, sizeof(unsigned char));
+    unsigned long int *labelEncodings = [self.baseLayer.image labelConnectedComponentsIn:rawData];
     
-    for (int i = 0; i < 64; i++) {
-        order[i] = i;
+    for (int i = 1; i < labelEncodings[0] + 1; i++) {
+        NSLog(@"LABEL ENCODING %d: %lu", i, labelEncodings[i]);
     }
+    
+//    for (int i = 0; i < 64; i++) {
+//        order[i] = i;
+//    }
     
     NSMutableString *output = [[NSMutableString alloc] initWithString:@""];
     // Sort them by increasing mean x position
-    BOOL isComplete = NO;
-    while (!isComplete) {
-        isComplete = YES;
-        for (int i = 1; i < 64; i++) {
-            if (labels[(i * 3) + 1] < labels[((i - 1) * 3) + 1]) {
-                double tempI = order[i];
-                double tempC = labels[i * 3];
-                double tempX = labels[(i * 3) + 1];
-                double tempY = labels[(i * 3) + 2];
-                order[i] = order[i - 1];
-                labels[i * 3] = labels[(i - 1) * 3];
-                labels[(i * 3) + 1] = labels[((i - 1) * 3) + 1];
-                labels[(i * 3) + 2] = labels[((i - 1) * 3) + 2];
-                order[i - 1] = tempI;
-                labels[(i - 1) * 3] = tempC;
-                labels[((i - 1) * 3) + 1] = tempX;
-                labels[((i - 1) * 3) + 2] = tempY;
-                isComplete = NO;
-            }
-        }
-    }
+//    BOOL isComplete = NO;
+//    while (!isComplete) {
+//        isComplete = YES;
+//        for (int i = 1; i < 64; i++) {
+//            if (labels[(i * 3) + 1] < labels[((i - 1) * 3) + 1]) {
+//                double tempI = order[i];
+//                double tempC = labels[i * 3];
+//                double tempX = labels[(i * 3) + 1];
+//                double tempY = labels[(i * 3) + 2];
+//                order[i] = order[i - 1];
+//                labels[i * 3] = labels[(i - 1) * 3];
+//                labels[(i * 3) + 1] = labels[((i - 1) * 3) + 1];
+//                labels[(i * 3) + 2] = labels[((i - 1) * 3) + 2];
+//                order[i - 1] = tempI;
+//                labels[(i - 1) * 3] = tempC;
+//                labels[((i - 1) * 3) + 1] = tempX;
+//                labels[((i - 1) * 3) + 2] = tempY;
+//                isComplete = NO;
+//            }
+//        }
+//    }
     
     // Classify the components with a significant number of pixels
-    for (int i = 0; i < 64; i++) {
-        if (labels[i * 3] > 10) {
-            [output appendString:[self classifyWithRawData:rawData andLabel:order[i]]];
-        }
+    for (int i = 1; i < labelEncodings[0] + 1; i++) {
+        [output appendString:[self classifyWithRawData:rawData andLabelEncoding:labelEncodings[i]]];
     }
 
     [predictionField setText:[NSString stringWithFormat:@"%@%@", predictionField.text, [ExpressionParser parseExpressionWithNoBrackets:output]]];
     
-    free(labels);
+    free(labelEncodings);
     free(rawData);
     
     evaluatedImage = YES;
 }
 
-- (NSString *) classifyWithRawData:(unsigned char *)rawData andLabel:(unsigned char)label {
+- (NSString *) classifyWithRawData:(unsigned char *)rawData andLabelEncoding:(unsigned long int)labelEncoding {
     
     // Find the bounds of the drawn image, minX, minY, maxX and maxY
     int minX = 1000000;
@@ -194,7 +195,7 @@ const int outputNeuronNo = 14;
     BOOL found = NO;
     for (int x = 0; x < self.baseLayer.image.size.width; x++) {
         for (int y = 0; y < self.baseLayer.image.size.height; y++) {
-            if ([self getPixelFromRawData:rawData x:x y:y withLabel:label] > 0) {
+            if ([self getPixelFromRawData:rawData x:x y:y withLabelEncoding:labelEncoding] > 0) {
                 minX = x;
                 found = YES;
                 break;
@@ -207,7 +208,7 @@ const int outputNeuronNo = 14;
     found = NO;
     for (int y = 0; y < self.baseLayer.image.size.height; y++) {
         for (int x = 0; x < self.baseLayer.image.size.width; x++) {
-            if ([self getPixelFromRawData:rawData x:x y:y withLabel:label] > 0) {
+            if ([self getPixelFromRawData:rawData x:x y:y withLabelEncoding:labelEncoding] > 0) {
                 minY = y;
                 found = YES;
                 break;
@@ -220,7 +221,7 @@ const int outputNeuronNo = 14;
     found = NO;
     for (int x = self.baseLayer.image.size.width - 1; x >=0; x--) {
         for (int y = 0; y < self.baseLayer.image.size.height; y++) {
-            if ([self getPixelFromRawData:rawData x:x y:y withLabel:label] > 0) {
+            if ([self getPixelFromRawData:rawData x:x y:y withLabelEncoding:labelEncoding] > 0) {
                 maxX = x;
                 found = YES;
                 break;
@@ -233,7 +234,7 @@ const int outputNeuronNo = 14;
     found = NO;
     for (int y = self.baseLayer.image.size.height - 1; y >= 0; y--) {
         for (int x = 0; x < self.baseLayer.image.size.width; x++) {
-            if ([self getPixelFromRawData:rawData x:x y:y withLabel:label] > 0) {
+            if ([self getPixelFromRawData:rawData x:x y:y withLabelEncoding:labelEncoding] > 0) {
                 maxY = y;
                 found = YES;
                 break;
@@ -252,7 +253,9 @@ const int outputNeuronNo = 14;
     if (debugMode) [Debug drawRectBoundsWithLooseRect:looseRect tightRect:tightRect onImageView:self.baseLayer inViewController:self];
     
     // Get the input vector from the data within the loose bound
-    Matrix *inputVector = [self.baseLayer.image extractInputVectorFromRawData:rawData fromX:looseRect.origin.x fromY:looseRect.origin.y with28Multiple:(looseRect.size.width / 28) inputNodesNo:inputNodesNo label:label];
+    Matrix *inputVector = [self.baseLayer.image extractInputVectorFromRawData:rawData fromX:looseRect.origin.x fromY:looseRect.origin.y with28Multiple:(looseRect.size.width / 28) inputNodesNo:inputNodesNo labelEncoding:labelEncoding];
+    
+    [Debug printMatrixIntValueFlat:inputVector];
     
     // Initialise the NN
     DeepNet *neuralNetwork = [[DeepNet alloc] initWithInputNodes:inputNodesNo hiddenNeurons:hiddenNeuronNo outputNeurons:outputNeuronNo];
@@ -298,9 +301,10 @@ const int outputNeuronNo = 14;
     return output;
 }
 
-- (int) getPixelFromRawData:(unsigned char *)rawData x:(int)x y:(int)y withLabel:(unsigned char)label {
+- (int) getPixelFromRawData:(unsigned char *)rawData x:(int)x y:(int)y withLabelEncoding:(unsigned long int)labelEncoding {
     if (x >= 0 && x < self.baseLayer.image.size.width && y >= 0 && y < self.baseLayer.image.size.height) {
-        if (rawData[(y * 4 * (int) self.baseLayer.image.size.width) + (x * 4)] == label) {
+        unsigned char label = rawData[(y * 4 * (int) self.baseLayer.image.size.width) + (x * 4)];
+        if ((labelEncoding >> label) & 1) {
             return rawData[((y * 4 * (int) self.baseLayer.image.size.width) + (x * 4)) + 3];
         }
     }

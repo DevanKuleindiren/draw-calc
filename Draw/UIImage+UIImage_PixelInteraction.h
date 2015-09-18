@@ -15,7 +15,7 @@
 @interface UIImage (UIImage_PixelInteraction)
 
 - (unsigned char *) extractRawImageData;
-- (Matrix *) extractInputVectorFromRawData:(unsigned char *)rawData fromX:(int)x fromY:(int)y with28Multiple:(int)multiple inputNodesNo:(int)inputNodesNo label:(unsigned char)label;
-- (double *) labelConnectedComponentsIn:(unsigned char *) rawData;
+- (Matrix *) extractInputVectorFromRawData:(unsigned char *)rawData fromX:(int)x fromY:(int)y with28Multiple:(int)multiple inputNodesNo:(int)inputNodesNo labelEncoding:(unsigned long int)labelEncoding;
+- (unsigned long int *) labelConnectedComponentsIn:(unsigned char *) rawData;
 
 @end

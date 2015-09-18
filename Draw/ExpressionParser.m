@@ -22,7 +22,7 @@
     
     // Check that expression is valid
     if (![self isExpressionValid:expression]) {
-        return expression;
+        return [self replaceDWithDivisionSign:expression];
     }
     
     // Prepare array for storing 'units' - i.e. a number or an operator
@@ -82,9 +82,7 @@
     }
     
     // Finally, replace 'd' with the real division sign, and append the result
-    NSError *error2 = NULL;
-    NSRegularExpression *divisionRegex = [NSRegularExpression regularExpressionWithPattern:@"d" options:NSRegularExpressionCaseInsensitive error:&error2];
-    NSMutableString *result = [NSMutableString stringWithString:[divisionRegex stringByReplacingMatchesInString:expression options:0 range:NSMakeRange(0, [expression length]) withTemplate:@"\u00F7"]];
+    NSMutableString *result = [self replaceDWithDivisionSign:expression];
     [result appendString:[NSString stringWithFormat:@" = %g", [[operands pop] doubleValue]]];
     
     return result;
@@ -179,6 +177,14 @@
         return YES;
     }
     return NO;
+}
+
++ (NSMutableString *) replaceDWithDivisionSign:(NSString *)string {
+    // Replace 'd' with the real division sign
+    NSError *error2 = NULL;
+    NSRegularExpression *divisionRegex = [NSRegularExpression regularExpressionWithPattern:@"d" options:NSRegularExpressionCaseInsensitive error:&error2];
+    NSMutableString *result = [NSMutableString stringWithString:[divisionRegex stringByReplacingMatchesInString:string options:0 range:NSMakeRange(0, [string length]) withTemplate:@"\u00F7"]];
+    return result;
 }
 
 @end
