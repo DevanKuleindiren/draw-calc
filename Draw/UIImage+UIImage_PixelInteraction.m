@@ -16,8 +16,8 @@
     NSUInteger width = CGImageGetWidth(imageRef);
     NSUInteger height = CGImageGetHeight(imageRef);
     CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
-    unsigned char *rawData = (unsigned char*) calloc(height * width * 4, sizeof(unsigned char));
     NSUInteger bytesPerPixel = 4;
+    unsigned char *rawData = (unsigned char*) calloc(height * width * bytesPerPixel, sizeof(unsigned char));
     NSUInteger bytesPerRow = bytesPerPixel * width;
     NSUInteger bitsPerComponent = 8;
     CGContextRef context = CGBitmapContextCreate(rawData, width, height,
@@ -28,21 +28,37 @@
     CGContextDrawImage(context, CGRectMake(0, 0, width, height), imageRef);
     CGContextRelease(context);
     
-    NSLog(@"%lu", (unsigned long)width);
-    NSLog(@"%lu", (unsigned long)height);
-    NSLog(@"%lu", sizeof(rawData));
-    
     return rawData;
 }
 
-- (Matrix *) extractRawImageDataFromX:(int)x fromY:(int)y with28Multiple:(int)multiple andInputNodesNo:(int)inputNodesNo {
-    
-    unsigned char *rawData = [self extractRawImageData];
-    
-    CGImageRef imageRef = [self CGImage];
-    NSUInteger width = CGImageGetWidth(imageRef);
-    NSUInteger bytesPerPixel = 4;
-    NSUInteger bytesPerRow = bytesPerPixel * width;
+- (int) getPixelFromRawData:(unsigned char *)rawData x:(int)x y:(int)y {
+    if (x < 0 || x >= self.size.width || y < 0 || y >= self.size.height) {
+        return 0;
+    }
+    return rawData[((y * 4 * (int) self.size.width) + (x * 4)) + 3];
+}
+
+- (int) getPixelFromRawData:(unsigned char *)rawData x:(int)x y:(int)y withLabel:(unsigned char)label {
+    if (x >= 0 && x < self.size.width && y >= 0 && y < self.size.height && rawData[(y * 4 * (int) self.size.width) + (x * 4)] == label) {
+        return rawData[((y * 4 * (int) self.size.width) + (x * 4)) + 3];
+    }
+    return 0;
+}
+
+- (int) getLabelFromRawData:(unsigned char *)rawData x:(int)x y:(int)y {
+    if (x < 0 || x >= self.size.width || y < 0 || y >= self.size.height) {
+        return 0;
+    }
+    return rawData[(y * 4 * (int) self.size.width) + (x * 4)];
+}
+
+- (void) setLabelInRawData:(unsigned char *)rawData x:(int)x y:(int)y value:(unsigned char)value {
+    if (x >= 0 && x < self.size.width && y >= 0 && y < self.size.height) {
+        rawData[(y * 4 * (int) self.size.width) + (x * 4)] = value;
+    }
+}
+
+- (Matrix *) extractInputVectorFromRawData:(unsigned char *)rawData fromX:(int)x fromY:(int)y with28Multiple:(int)multiple inputNodesNo:(int)inputNodesNo label:(unsigned char)label {
     
     Matrix *inputVector = [[Matrix alloc] initWithRows:1 cols:inputNodesNo];
     Matrix *test = [[Matrix alloc] initWithRows:28 cols:28];
@@ -53,8 +69,9 @@
             
             for (int subRow = 0; subRow < multiple; subRow++) {
                 for (int subCol = 0; subCol < multiple; subCol++) {
-                    NSUInteger byteIndex = (bytesPerRow * (y + (row * multiple) + subRow)) + ((x + (col * multiple) + subCol) * bytesPerPixel);
-                    sum += rawData[byteIndex + 3];
+                    //NSUInteger byteIndex = (bytesPerRow * (y + (row * multiple) + subRow)) + ((x + (col * multiple) + subCol) * bytesPerPixel);
+                    //sum += rawData[byteIndex + 3];
+                    sum += [self getPixelFromRawData:rawData x:(x + (col * multiple) + subCol) y:(y + (row * multiple) + subRow) withLabel:label];
                 }
             }
             
@@ -67,9 +84,44 @@
     
     [inputVector insertObjectAtRow:0 col:(inputNodesNo - 1) obj:[NSNumber numberWithDouble:0]];
     [inputVector insertObjectAtRow:0 col:0 obj:[NSNumber numberWithDouble:-1]];
-    free(rawData);
     
     return inputVector;
+}
+
+- (unsigned char *) labelConnectedComponentsIn:(unsigned char *) rawData {
+    
+    // There can be a maximum of 64 labels
+    unsigned char *labels = (unsigned char*) calloc(64 * 3, sizeof(unsigned char));
+    
+    int currentLabel = 1;
+    for (int y = 0; y < self.size.height; y++) {
+        for (int x = 0; x < self.size.width; x++) {
+            if ([self getPixelFromRawData:rawData x:x y:y] > 0 && [self getLabelFromRawData:rawData x:x y:y] == 0) {
+                [self setLabelInRawData:rawData x:x y:y value:currentLabel];
+                labels[currentLabel * 3]++;
+                PixelQueue *neighbourQ = [[PixelQueue alloc] init];
+                [neighbourQ push:[[Pixel alloc] initWithX:x Y:y]];
+                
+                // Label all other connected components with same label
+                while (![neighbourQ isEmpty]) {
+                    Pixel *current = [neighbourQ pull];
+                    for (int yDiff = current.y - 1; yDiff <= current.y + 1; yDiff++) {
+                        for (int xDiff = current.x - 1; xDiff <= current.x + 1; xDiff++) {
+                            if ([self getPixelFromRawData:rawData x:xDiff y:yDiff] > 0 && [self getLabelFromRawData:rawData x:xDiff y:yDiff] == 0) {
+                                [self setLabelInRawData:rawData x:xDiff y:yDiff value:currentLabel];
+                                labels[currentLabel]++;
+                                [neighbourQ push:[[Pixel alloc] initWithX:xDiff Y:yDiff]];
+                            }
+                        }
+                    }
+                }
+                
+                currentLabel++;
+            }
+        }
+    }
+    
+    return labels;
 }
 
 

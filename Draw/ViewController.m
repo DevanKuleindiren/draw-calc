@@ -10,18 +10,11 @@
 
 @interface ViewController () {
     
-    int timeSinceTouch;
-    NSTimer *timeSinceTouchTimer;
-    
     BOOL debugMode;
     BOOL evaluatedImage;
 }
 
-- (void) initialiseVariables;
-- (void) updateMinMaxPoints:(CGPoint)point;
 - (CGRect) generateLooseRectWithTightRect:(CGRect) tightRect;
-- (void) classifyWithBound:(CGRect)bound;
-
 
 @end
 
@@ -38,8 +31,6 @@ const int outputNeuronNo = 10;
     brush = 12.0;
     debugMode = NO;
     evaluatedImage = NO;
-        
-    [self initialiseVariables];
     
     // Prediction text field
     UIView *paddingView = [[UIView alloc] initWithFrame:CGRectMake(0, 0, 15, 20)];
@@ -53,24 +44,7 @@ const int outputNeuronNo = 10;
     [tapRecogniser setNumberOfTapsRequired:2];
     [self.view addGestureRecognizer:tapRecogniser];
     
-    NSString *result = [ExpressionParser parseExpressionWithNoBrackets:@"2-3d0"];
-    NSLog(@"RESULT: %@", result);
-    
-    NSString *result2 = [ExpressionParser parseExpressionWithNoBrackets:@"-4x5d2-8"];
-    NSLog(@"RESULT: %@", result2);
-    
-    NSString *result3 = [ExpressionParser parseExpressionWithNoBrackets:@"5-2+3"];
-    NSLog(@"RESULT: %@", result3);
-    
     // Do any additional setup after loading the view, typically from a nib.
-}
-
-- (void) initialiseVariables {
-    timeSinceTouch = 0;
-    minXPoint = 10000;
-    maxXPoint = 0;
-    minYPoint = 10000;
-    maxYPoint = 0;
 }
 
 - (void) toggleDebugMode:(UITapGestureRecognizer *)gestureRecogniser {
@@ -92,8 +66,6 @@ const int outputNeuronNo = 10;
     lastPoint = [touch locationInView:self.view];
     
     if (![predictionField isFirstResponder]) {
-        [self updateMinMaxPoints:lastPoint];
-        
         UIGraphicsBeginImageContext(self.view.frame.size);
         [self.baseLayer.image drawInRect:CGRectMake(0, 0, self.view.frame.size.width, self.view.frame.size.height)];
         CGContextSetLineCap(UIGraphicsGetCurrentContext(), kCGLineCapRound);
@@ -113,8 +85,6 @@ const int outputNeuronNo = 10;
     mouseSwiped = YES;
     UITouch *touch = [touches anyObject];
     CGPoint currentPoint = [touch locationInView:self.view];
-    
-    [self updateMinMaxPoints:currentPoint];
     
     // This sets up an image context
     UIGraphicsBeginImageContext(self.view.frame.size);
@@ -151,38 +121,153 @@ const int outputNeuronNo = 10;
     }
 }
 
-- (void) updateMinMaxPoints:(CGPoint)point {
-    if (point.x < minXPoint) minXPoint = point.x;
-    if (point.x > maxXPoint) maxXPoint = point.x;
-    if (point.y < minYPoint) minYPoint = point.y;
-    if (point.y > maxYPoint) maxYPoint = point.y;
+- (IBAction)evaluate:(id)sender {
+    
+    /* PLAN:
+        - Apply connected-component labelling algorithm to rawData, storing the labels in the RGB slots of the pixel values.
+        - As this is applied, the number of pixels, mean x value and mean y value are kept track of for each label
+        - Based on these counts, smaller (below a certain threshold) components are merged with the next-nearest component (based on mean x and y values).
+        - TO DO IN FUTURE: Also, separate incorrectly joined components.
+        - The merging is achieved using binary digits. E.g. if we want to merge components 1 and 3, then we pass 00000101 = 5 to the classifier method. The classifier method will then only regard a pixel if it has a label for which (5 >> (label - 1)) & 1 is 1.
+        - The classification method will then calculate the tight and loose rect, compress it to 28x28 and then feed it into the NN
+        - Construct a string from the outputs, and pass it into the parser
+        - Display the result in the textbox.
+     */
+    
+    
+    unsigned char *rawData = [self.baseLayer.image extractRawImageData];
+    
+    unsigned char *labels = [self.baseLayer.image labelConnectedComponentsIn:rawData];
+    
+    NSMutableString *output = [[NSMutableString alloc] initWithString:@""];
+    for (int i = 0; i < 64; i++) {
+        if (labels[i] != 0) {
+            [output appendString:[self classifyWithRawData:rawData andLabel:i]];
+        }
+    }
+
+    [predictionField setText:[NSString stringWithFormat:@"%@%@", predictionField.text, output]];
+    
+    free(labels);
+    free(rawData);
+    
+    evaluatedImage = YES;
 }
 
-// L - lesser, G - greater
-- (CGRect) generateSquareWithMinL:(int)minL maxL:(int)maxL minG:(int)minG maxG:(int)maxG isYG:(BOOL)isYG {
-    minL -= 35;
-    minG -= 35;
-    maxL += 35;
-    maxG += 35;
+- (NSString *) classifyWithRawData:(unsigned char *)rawData andLabel:(unsigned char)label {
     
-    int gDiff = (maxG - minG);
-    int lDiff = (maxL - minL);
+    // Find the bounds of the drawn image, minX, minY, maxX and maxY
+    int minX = 1000000;
+    int minY = 1000000;
+    int maxX = 0;
+    int maxY = 0;
     
-    if (gDiff % 28 != 0) {
-        int nextHighest = ((gDiff / 28) + 1) * 28;
-        int toChange = nextHighest - gDiff;
-            
-        minG -= (toChange / 2);
-        maxG += (toChange / 2);
-        if (toChange % 2 != 0) minG -= 1;
-        gDiff = maxG - minG;
+    // Find minX
+    BOOL found = NO;
+    for (int x = 0; x < self.baseLayer.image.size.width; x++) {
+        for (int y = 0; y < self.baseLayer.image.size.height; y++) {
+            if ([self getPixelFromRawData:rawData x:x y:y withLabel:label] > 0) {
+                minX = x;
+                found = YES;
+                break;
+            }
+        }
+        if (found) break;
     }
-    minL -= ((gDiff - lDiff) / 2);
-    maxL += ((gDiff - lDiff) / 2);
-    if ((gDiff - lDiff) % 2 != 0) minL -= 1;
     
-    if (isYG) return CGRectMake(minL + 1, minG + 1, maxL - minL, maxG - minG);
-    else return CGRectMake(minG + 1, minL + 1, maxG - minG, maxL - minL);
+    // Find minY
+    found = NO;
+    for (int y = 0; y < self.baseLayer.image.size.height; y++) {
+        for (int x = 0; x < self.baseLayer.image.size.width; x++) {
+            if ([self getPixelFromRawData:rawData x:x y:y withLabel:label] > 0) {
+                minY = y;
+                found = YES;
+                break;
+            }
+        }
+        if (found) break;
+    }
+    
+    // Find maxX
+    found = NO;
+    for (int x = self.baseLayer.image.size.width - 1; x >=0; x--) {
+        for (int y = 0; y < self.baseLayer.image.size.height; y++) {
+            if ([self getPixelFromRawData:rawData x:x y:y withLabel:label] > 0) {
+                maxX = x;
+                found = YES;
+                break;
+            }
+        }
+        if (found) break;
+    }
+    
+    // Find maxY
+    found = NO;
+    for (int y = self.baseLayer.image.size.height - 1; y >= 0; y--) {
+        for (int x = 0; x < self.baseLayer.image.size.width; x++) {
+            if ([self getPixelFromRawData:rawData x:x y:y withLabel:label] > 0) {
+                maxY = y;
+                found = YES;
+                break;
+            }
+        }
+        if (found) break;
+    }
+    
+    NSLog(@"BOUNDS FOR %d: %d, %d, %d, %d", label, minX, maxX, minY, maxY);
+    
+    // Generate the tight rectangle around the image
+    CGRect tightRect = CGRectMake(minX, minY, maxX - minX, maxY - minY);
+    
+    // From this, generate a looser bound, which has dimensions which are a multiple of 28 (makes compression easy)
+    CGRect looseRect = [self generateLooseRectWithTightRect:tightRect];
+    
+    // Display these bounds if debugging
+    if (debugMode) [Debug drawRectBoundsWithLooseRect:looseRect tightRect:tightRect onImageView:self.baseLayer inViewController:self];
+    
+    // Get the input vector from the data within the loose bound
+    Matrix *inputVector = [self.baseLayer.image extractInputVectorFromRawData:rawData fromX:looseRect.origin.x fromY:looseRect.origin.y with28Multiple:(looseRect.size.width / 28) inputNodesNo:inputNodesNo label:label];
+    
+    [Debug printMatrixIntValueFlat:inputVector];
+    
+    // Initialise the NN
+    DeepNet *neuralNetwork = [[DeepNet alloc] initWithInputNodes:inputNodesNo hiddenNeurons:hiddenNeuronNo outputNeurons:outputNeuronNo];
+    
+    // Feed the data through the NN
+    Matrix *outputVector = [neuralNetwork useNetWithInputs:inputVector andBeta:1.0];
+    
+    // Show the actual score given by the NN for the output
+    if (debugMode) {
+        double max = [[outputVector row:0 col:0] doubleValue];
+        for (int i = 1; i < 10; i++) {
+            if ([[outputVector row:0 col:i] doubleValue] > max) {
+                max = [[outputVector row:0 col:i] doubleValue];
+            }
+        }
+        [confidenceLabel setText:[NSString stringWithFormat:@"Confidence: %f", max]];
+    }
+    
+    // Set the highest output to 1, the rest to 0
+    [outputVector rectifyActivations];
+    
+    // Display this output
+    NSString *output;
+    for (int i = 0; i < 10; i++) {
+        if ([[outputVector row:0 col:i] doubleValue] == 1.0) {
+            output = [NSString stringWithFormat:@"%d", i];
+        }
+    }
+    
+    return output;
+}
+
+- (int) getPixelFromRawData:(unsigned char *)rawData x:(int)x y:(int)y withLabel:(unsigned char)label {
+    if (x >= 0 && x < self.baseLayer.image.size.width && y >= 0 && y < self.baseLayer.image.size.height) {
+        if (rawData[(y * 4 * (int) self.baseLayer.image.size.width) + (x * 4)] == label) {
+            return rawData[((y * 4 * (int) self.baseLayer.image.size.width) + (x * 4)) + 3];
+        }
+    }
+    return 0;
 }
 
 - (CGRect) generateLooseRectWithTightRect:(CGRect)tightRect {
@@ -199,54 +284,31 @@ const int outputNeuronNo = 10;
     }
 }
 
-- (void) classifyWithBound:(CGRect)bound {
+// L - lesser, G - greater
+- (CGRect) generateSquareWithMinL:(int)minL maxL:(int)maxL minG:(int)minG maxG:(int)maxG isYG:(BOOL)isYG {
+    minL -= 35;
+    minG -= 35;
+    maxL += 35;
+    maxG += 35;
     
-    NSLog(@"FROM X: %f, FROM Y: %f", bound.origin.x, bound.origin.y);
-    Matrix *inputVector = [self.baseLayer.image extractRawImageDataFromX:bound.origin.x fromY:bound.origin.y with28Multiple:(bound.size.width / 28) andInputNodesNo:inputNodesNo];
+    int gDiff = (maxG - minG);
+    int lDiff = (maxL - minL);
     
-    DeepNet *neuralNetwork = [[DeepNet alloc] initWithInputNodes:inputNodesNo hiddenNeurons:hiddenNeuronNo outputNeurons:outputNeuronNo];
-    Matrix *outputVector = [neuralNetwork useNetWithInputs:inputVector andBeta:1.0];
-    
-    if (debugMode) {
-        double max = [[outputVector row:0 col:0] doubleValue];
-        for (int i = 1; i < 10; i++) {
-            if ([[outputVector row:0 col:i] doubleValue] > max) {
-                max = [[outputVector row:0 col:i] doubleValue];
-            }
-        }
-        [confidenceLabel setText:[NSString stringWithFormat:@"Confidence: %f", max]];
+    if (gDiff % 28 != 0) {
+        int nextHighest = ((gDiff / 28) + 1) * 28;
+        int toChange = nextHighest - gDiff;
+        
+        minG -= (toChange / 2);
+        maxG += (toChange / 2);
+        if (toChange % 2 != 0) minG -= 1;
+        gDiff = maxG - minG;
     }
+    minL -= ((gDiff - lDiff) / 2);
+    maxL += ((gDiff - lDiff) / 2);
+    if ((gDiff - lDiff) % 2 != 0) minL -= 1;
     
-    [outputVector rectifyActivations];
-    
-    for (int i = 0; i < 10; i++) {
-        if ([[outputVector row:0 col:i] doubleValue] == 1.0) {
-            [predictionField setText:[NSString stringWithFormat:@"%@%d", predictionField.text, i]];
-        }
-    }
-}
-
-- (IBAction)evaluate:(id)sender {
-    
-    // APP IS READY TO CLASSIFY:
-    /*
-        1. Get an array of vertical separators from some segmentation algorithm
-        2. For each pair of separators,
-            - Classify the image within the bounds of the separator (treating out of bounds as white)
-            - Add the classification result of this image to the end of a string
-        3. Parse that string and output the answer
-     */
-    
-    
-    CGRect tightRect = CGRectMake(minXPoint, minYPoint, maxXPoint - minXPoint, maxYPoint - minYPoint);
-    CGRect looseRect = [self generateLooseRectWithTightRect:tightRect];
-    
-    if (debugMode) [Debug drawRectBoundsWithLooseRect:looseRect tightRect:tightRect onImageView:self.baseLayer inViewController:self];
-    
-    [self classifyWithBound:looseRect];
-    [self initialiseVariables];
-    
-    evaluatedImage = YES;
+    if (isYG) return CGRectMake(minL + 1, minG + 1, maxL - minL, maxG - minG);
+    else return CGRectMake(minG + 1, minL + 1, maxG - minG, maxL - minL);
 }
 
 

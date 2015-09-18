@@ -9,9 +9,13 @@
 #import <UIKit/UIKit.h>
 #import "Matrix.h"
 #import "Matrix+NeuralNetExtension.h"
+#import "Pixel.h"
+#import "PixelQueue.h"
 
 @interface UIImage (UIImage_PixelInteraction)
 
-- (Matrix *) extractRawImageDataFromX:(int)x fromY:(int)y with28Multiple:(int)multiple andInputNodesNo:(int)inputNodesNo;
+- (unsigned char *) extractRawImageData;
+- (Matrix *) extractInputVectorFromRawData:(unsigned char *)rawData fromX:(int)x fromY:(int)y with28Multiple:(int)multiple inputNodesNo:(int)inputNodesNo label:(unsigned char)label;
+- (unsigned char *) labelConnectedComponentsIn:(unsigned char *) rawData;
 
 @end

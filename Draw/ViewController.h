@@ -17,12 +17,6 @@
     // Previous point to draw line from
     CGPoint lastPoint;
     
-    // Square heuristics
-    int maxXPoint;
-    int minXPoint;
-    int maxYPoint;
-    int minYPoint;
-    
     // Line properties
     CGFloat brush;
     
