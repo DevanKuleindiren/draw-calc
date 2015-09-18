@@ -19,8 +19,8 @@
 @end
 
 const int inputNodesNo = 785;
-const int hiddenNeuronNo = 15;
-const int outputNeuronNo = 10;
+const int hiddenNeuronNo = 20;
+const int outputNeuronNo = 14;
 
 @implementation ViewController
 
@@ -114,7 +114,6 @@ const int outputNeuronNo = 10;
     
     UITouch *touch = [touches anyObject];
     CGPoint currentPoint = [touch locationInView:self.view];
-    NSLog(@"X:%f, Y:%f", currentPoint.x, currentPoint.y);
     
     if ([predictionField isFirstResponder]) {
         [predictionField resignFirstResponder];
@@ -171,7 +170,6 @@ const int outputNeuronNo = 10;
     // Classify the components with a significant number of pixels
     for (int i = 0; i < 64; i++) {
         if (labels[i * 3] > 10) {
-            NSLog(@"MEAN X: %f, MEAN Y: %f", labels[(i * 3) + 1], labels[(i * 3) + 2]);
             [output appendString:[self classifyWithRawData:rawData andLabel:order[i]]];
         }
     }
@@ -244,8 +242,6 @@ const int outputNeuronNo = 10;
         if (found) break;
     }
     
-    NSLog(@"BOUNDS FOR %d: %d, %d, %d, %d", label, minX, maxX, minY, maxY);
-    
     // Generate the tight rectangle around the image
     CGRect tightRect = CGRectMake(minX, minY, maxX - minX, maxY - minY);
     
@@ -257,8 +253,6 @@ const int outputNeuronNo = 10;
     
     // Get the input vector from the data within the loose bound
     Matrix *inputVector = [self.baseLayer.image extractInputVectorFromRawData:rawData fromX:looseRect.origin.x fromY:looseRect.origin.y with28Multiple:(looseRect.size.width / 28) inputNodesNo:inputNodesNo label:label];
-    
-    [Debug printMatrixIntValueFlat:inputVector];
     
     // Initialise the NN
     DeepNet *neuralNetwork = [[DeepNet alloc] initWithInputNodes:inputNodesNo hiddenNeurons:hiddenNeuronNo outputNeurons:outputNeuronNo];
@@ -282,9 +276,22 @@ const int outputNeuronNo = 10;
     
     // Display this output
     NSString *output;
+    BOOL outputFound = NO;
     for (int i = 0; i < 10; i++) {
         if ([[outputVector row:0 col:i] doubleValue] == 1.0) {
             output = [NSString stringWithFormat:@"%d", i];
+            outputFound = YES;
+        }
+    }
+    if (!outputFound) {
+        if ([[outputVector row:0 col:10] doubleValue] == 1.0) {
+            output = @"+";
+        } else if ([[outputVector row:0 col:10] doubleValue] == 1.0) {
+            output = @"-";
+        } else if ([[outputVector row:0 col:10] doubleValue] == 1.0) {
+            output = @"x";
+        } else {
+            output = @"d";
         }
     }
     

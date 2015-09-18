@@ -22,7 +22,7 @@
     
     // Check that expression is valid
     if (![self isExpressionValid:expression]) {
-        return nil;
+        return expression;
     }
     
     // Prepare array for storing 'units' - i.e. a number or an operator
@@ -85,7 +85,7 @@
     NSError *error2 = NULL;
     NSRegularExpression *divisionRegex = [NSRegularExpression regularExpressionWithPattern:@"d" options:NSRegularExpressionCaseInsensitive error:&error2];
     NSMutableString *result = [NSMutableString stringWithString:[divisionRegex stringByReplacingMatchesInString:expression options:0 range:NSMakeRange(0, [expression length]) withTemplate:@"\u00F7"]];
-    [result appendString:[NSString stringWithFormat:@" = %.02f", [[operands pop] doubleValue]]];
+    [result appendString:[NSString stringWithFormat:@" = %g", [[operands pop] doubleValue]]];
     
     return result;
 }

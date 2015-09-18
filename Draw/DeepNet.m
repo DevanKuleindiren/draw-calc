@@ -30,7 +30,7 @@
         weights2 = [[Matrix alloc] initWithRows:(_hiddenNeuronNo + 1) cols:_outputNeuronNo];
         
         NSError *error;
-        NSString *myPath = [[NSBundle mainBundle]pathForResource:@"w10000x1500x001" ofType:@"txt"];
+        NSString *myPath = [[NSBundle mainBundle]pathForResource:@"w14000x1000x0001" ofType:@"txt"];
         NSString *stringFromWeights = [[NSString alloc] initWithContentsOfFile:myPath encoding:NSUTF8StringEncoding error:&error];
         
         if (stringFromWeights == nil) NSLog(@"Error.");
