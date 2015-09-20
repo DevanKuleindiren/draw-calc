@@ -12,6 +12,12 @@
     
     BOOL debugMode;
     BOOL evaluatedImage;
+    
+    // Overall bound on drawn expression
+    int overallMinX;
+    int overallMinY;
+    int overallMaxX;
+    int overallMaxY;
 }
 
 - (CGRect) generateLooseRectWithTightRect:(CGRect) tightRect;
@@ -31,6 +37,8 @@ const int outputNeuronNo = 14;
     brush = 12.0;
     debugMode = NO;
     evaluatedImage = NO;
+    
+    [self initialiseOverallBoundVariables];
     
     // Prediction text field
     UIView *paddingView = [[UIView alloc] initWithFrame:CGRectMake(0, 0, 15, 20)];
@@ -52,12 +60,26 @@ const int outputNeuronNo = 14;
     if (!debugMode) [confidenceLabel setText:@""];
 }
 
+- (void) initialiseOverallBoundVariables {
+    overallMinX = INT32_MAX;
+    overallMinY = INT32_MAX;
+    overallMaxX = 0;
+    overallMaxY = 0;
+}
+
+- (void) updateOverallBoundVariablesWithPointX:(int)x Y:(int)y {
+    if (x < overallMinX) overallMinX = x;
+    if (y < overallMinY) overallMinY = y;
+    if (x > overallMaxX) overallMaxX = x;
+    if (y > overallMaxY) overallMaxY = y;
+}
 
 - (void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event {
     
     if (evaluatedImage) {
         self.baseLayer.image = nil;
         predictionField.text = @"";
+        [self initialiseOverallBoundVariables];
         evaluatedImage = NO;
     }
     
@@ -67,6 +89,10 @@ const int outputNeuronNo = 14;
     lastPoint = [touch locationInView:self.view];
     
     if (![predictionField isFirstResponder]) {
+        // Update overall bound on drawn expression
+        [self updateOverallBoundVariablesWithPointX:lastPoint.x Y:lastPoint.y];
+        
+        // Start line drawing from current point
         UIGraphicsBeginImageContext(self.view.frame.size);
         [self.baseLayer.image drawInRect:CGRectMake(0, 0, self.view.frame.size.width, self.view.frame.size.height)];
         CGContextSetLineCap(UIGraphicsGetCurrentContext(), kCGLineCapRound);
@@ -86,6 +112,9 @@ const int outputNeuronNo = 14;
     mouseSwiped = YES;
     UITouch *touch = [touches anyObject];
     CGPoint currentPoint = [touch locationInView:self.view];
+    
+    // Update overall bound on drawn expression
+    [self updateOverallBoundVariablesWithPointX:currentPoint.x Y:currentPoint.y];
     
     // This sets up an image context
     UIGraphicsBeginImageContext(self.view.frame.size);
@@ -112,11 +141,14 @@ const int outputNeuronNo = 14;
 
 - (void) touchesEnded:(NSSet *)touches withEvent:(UIEvent *)event {
     
-    UITouch *touch = [touches anyObject];
-    CGPoint currentPoint = [touch locationInView:self.view];
-    
     if ([predictionField isFirstResponder]) {
         [predictionField resignFirstResponder];
+    } else {
+        UITouch *touch = [touches anyObject];
+        CGPoint currentPoint = [touch locationInView:self.view];
+        
+        // Update overall bound on drawn expression
+        [self updateOverallBoundVariablesWithPointX:currentPoint.x Y:currentPoint.y];
     }
 }
 
@@ -142,33 +174,7 @@ const int outputNeuronNo = 14;
         NSLog(@"LABEL ENCODING %d: %lu", i, labelEncodings[i]);
     }
     
-//    for (int i = 0; i < 64; i++) {
-//        order[i] = i;
-//    }
-    
     NSMutableString *output = [[NSMutableString alloc] initWithString:@""];
-    // Sort them by increasing mean x position
-//    BOOL isComplete = NO;
-//    while (!isComplete) {
-//        isComplete = YES;
-//        for (int i = 1; i < 64; i++) {
-//            if (labels[(i * 3) + 1] < labels[((i - 1) * 3) + 1]) {
-//                double tempI = order[i];
-//                double tempC = labels[i * 3];
-//                double tempX = labels[(i * 3) + 1];
-//                double tempY = labels[(i * 3) + 2];
-//                order[i] = order[i - 1];
-//                labels[i * 3] = labels[(i - 1) * 3];
-//                labels[(i * 3) + 1] = labels[((i - 1) * 3) + 1];
-//                labels[(i * 3) + 2] = labels[((i - 1) * 3) + 2];
-//                order[i - 1] = tempI;
-//                labels[(i - 1) * 3] = tempC;
-//                labels[((i - 1) * 3) + 1] = tempX;
-//                labels[((i - 1) * 3) + 2] = tempY;
-//                isComplete = NO;
-//            }
-//        }
-//    }
     
     // Classify the components with a significant number of pixels
     for (int i = 1; i < labelEncodings[0] + 1; i++) {
@@ -186,15 +192,15 @@ const int outputNeuronNo = 14;
 - (NSString *) classifyWithRawData:(unsigned char *)rawData andLabelEncoding:(unsigned long int)labelEncoding {
     
     // Find the bounds of the drawn image, minX, minY, maxX and maxY
-    int minX = 1000000;
-    int minY = 1000000;
+    int minX = INT32_MAX;
+    int minY = INT32_MAX;
     int maxX = 0;
     int maxY = 0;
     
     // Find minX
     BOOL found = NO;
-    for (int x = 0; x < self.baseLayer.image.size.width; x++) {
-        for (int y = 0; y < self.baseLayer.image.size.height; y++) {
+    for (int x = overallMinX; x < self.baseLayer.image.size.width; x++) {
+        for (int y = overallMinY; y < self.baseLayer.image.size.height; y++) {
             if ([self getPixelFromRawData:rawData x:x y:y withLabelEncoding:labelEncoding] > 0) {
                 minX = x;
                 found = YES;
@@ -206,8 +212,8 @@ const int outputNeuronNo = 14;
     
     // Find minY
     found = NO;
-    for (int y = 0; y < self.baseLayer.image.size.height; y++) {
-        for (int x = 0; x < self.baseLayer.image.size.width; x++) {
+    for (int y = overallMinY; y < self.baseLayer.image.size.height; y++) {
+        for (int x = overallMinX; x < self.baseLayer.image.size.width; x++) {
             if ([self getPixelFromRawData:rawData x:x y:y withLabelEncoding:labelEncoding] > 0) {
                 minY = y;
                 found = YES;
@@ -219,8 +225,8 @@ const int outputNeuronNo = 14;
     
     // Find maxX
     found = NO;
-    for (int x = self.baseLayer.image.size.width - 1; x >=0; x--) {
-        for (int y = 0; y < self.baseLayer.image.size.height; y++) {
+    for (int x = overallMaxX; x >=0; x--) {
+        for (int y = overallMinY; y < self.baseLayer.image.size.height; y++) {
             if ([self getPixelFromRawData:rawData x:x y:y withLabelEncoding:labelEncoding] > 0) {
                 maxX = x;
                 found = YES;
@@ -232,8 +238,8 @@ const int outputNeuronNo = 14;
     
     // Find maxY
     found = NO;
-    for (int y = self.baseLayer.image.size.height - 1; y >= 0; y--) {
-        for (int x = 0; x < self.baseLayer.image.size.width; x++) {
+    for (int y = overallMaxY; y >= 0; y--) {
+        for (int x = overallMinX; x < self.baseLayer.image.size.width; x++) {
             if ([self getPixelFromRawData:rawData x:x y:y withLabelEncoding:labelEncoding] > 0) {
                 maxY = y;
                 found = YES;
@@ -244,7 +250,7 @@ const int outputNeuronNo = 14;
     }
     
     // Generate the tight rectangle around the image
-    CGRect tightRect = CGRectMake(minX, minY, maxX - minX, maxY - minY);
+    CGRect tightRect = CGRectMake(overallMinX, overallMinY, overallMaxX - overallMinX, overallMaxY - overallMinY);
     
     // From this, generate a looser bound, which has dimensions which are a multiple of 28 (makes compression easy)
     CGRect looseRect = [self generateLooseRectWithTightRect:tightRect];
