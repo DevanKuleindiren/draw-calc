@@ -147,6 +147,7 @@
     unsigned char *smallerComponents = (unsigned char *) calloc(noOfSmallComponents * 2, sizeof(unsigned char));
     
     labelEncodings[0] = noOfLargeComponents;
+    
     int encodingIndex = 1;
     int smallComponentIndex = 0;
     for (int i = 0; i < 64; i++) {
@@ -173,7 +174,6 @@
             }
         }
     }
-    
     
     // Calculate the closest larger components to the smaller ones (distance wise)
     for (int i = 0; i < noOfSmallComponents * 2; i++) {

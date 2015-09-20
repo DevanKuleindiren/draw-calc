@@ -170,7 +170,7 @@ const int outputNeuronNo = 14;
         - Construct a string from the outputs, and pass it into the parser
         - Display the result in the textbox.
      */
-    
+    if (self.baseLayer.image == nil) return;
     
     unsigned char *rawData = [self.baseLayer.image extractRawImageData];
     
