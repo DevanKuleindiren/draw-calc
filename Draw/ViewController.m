@@ -52,18 +52,31 @@ const int outputNeuronNo = 14;
     predictionField.leftViewMode = UITextFieldViewModeAlways;
     
     // Gesture recogniser
-    UITapGestureRecognizer *tapRecogniser = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(toggleDebugMode:)];
+    UILongPressGestureRecognizer *longPressRecogniser = [[UILongPressGestureRecognizer alloc] initWithTarget:self action:@selector(toggleDebugMode:)];
     
-    [tapRecogniser setNumberOfTouchesRequired:1];
-    [tapRecogniser setNumberOfTapsRequired:2];
-    [self.view addGestureRecognizer:tapRecogniser];
+    [longPressRecogniser setNumberOfTouchesRequired:1];
+    [longPressRecogniser setMinimumPressDuration:2.0];
+    [self.view addGestureRecognizer:longPressRecogniser];
     
     // Do any additional setup after loading the view, typically from a nib.
 }
 
 - (void) toggleDebugMode:(UITapGestureRecognizer *)gestureRecogniser {
-    debugMode = !debugMode;
-    if (!debugMode) [confidenceLabel setText:@""];
+    if (gestureRecogniser.state == UIGestureRecognizerStateBegan) {
+        UIAlertView *debugAlert = [[UIAlertView alloc] initWithTitle:@"Toggle Debug Mode?" message:nil delegate:self cancelButtonTitle:@"Nope" otherButtonTitles:@"Yeah!", nil];
+        [debugAlert show];
+    }
+}
+
+-(void)alertView:(UIAlertView *)alertView clickedButtonAtIndex:(NSInteger)buttonIndex {
+    if (buttonIndex == 0) {
+        // Toggle debug cancelled
+    }
+    else {
+        // Toggle debug confirmed
+        debugMode = !debugMode;
+        if (!debugMode) [confidenceLabel setText:@""];
+    }
 }
 
 - (void) initialiseOverallBoundVariables {
@@ -298,9 +311,9 @@ const int outputNeuronNo = 14;
     if (!outputFound) {
         if ([[outputVector row:0 col:10] doubleValue] == 1.0) {
             output = @"+";
-        } else if ([[outputVector row:0 col:10] doubleValue] == 1.0) {
+        } else if ([[outputVector row:0 col:11] doubleValue] == 1.0) {
             output = @"-";
-        } else if ([[outputVector row:0 col:10] doubleValue] == 1.0) {
+        } else if ([[outputVector row:0 col:12] doubleValue] == 1.0) {
             output = @"x";
         } else {
             output = @"d";
