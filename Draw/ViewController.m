@@ -10,7 +10,13 @@
 
 @interface ViewController () {
     
+    // The NN to use
+    DeepNet *neuralNetwork;
+    
+    // Track whether debug mode is on
     BOOL debugMode;
+    
+    // Track whether the current image has been evaluated
     BOOL evaluatedImage;
     
     // Overall bound on drawn expression
@@ -37,8 +43,8 @@ const int outputNeuronNo = 14;
     brush = 12.0;
     debugMode = NO;
     evaluatedImage = NO;
-    
     [self initialiseOverallBoundVariables];
+    neuralNetwork = [[DeepNet alloc] initWithInputNodes:inputNodesNo hiddenNeurons:hiddenNeuronNo outputNeurons:outputNeuronNo];
     
     // Prediction text field
     UIView *paddingView = [[UIView alloc] initWithFrame:CGRectMake(0, 0, 15, 20)];
@@ -250,7 +256,7 @@ const int outputNeuronNo = 14;
     }
     
     // Generate the tight rectangle around the image
-    CGRect tightRect = CGRectMake(overallMinX, overallMinY, overallMaxX - overallMinX, overallMaxY - overallMinY);
+    CGRect tightRect = CGRectMake(minX, minY, maxX - minX, maxY - minY);
     
     // From this, generate a looser bound, which has dimensions which are a multiple of 28 (makes compression easy)
     CGRect looseRect = [self generateLooseRectWithTightRect:tightRect];
@@ -262,9 +268,6 @@ const int outputNeuronNo = 14;
     Matrix *inputVector = [self.baseLayer.image extractInputVectorFromRawData:rawData fromX:looseRect.origin.x fromY:looseRect.origin.y with28Multiple:(looseRect.size.width / 28) inputNodesNo:inputNodesNo labelEncoding:labelEncoding];
     
     [Debug printMatrixIntValueFlat:inputVector];
-    
-    // Initialise the NN
-    DeepNet *neuralNetwork = [[DeepNet alloc] initWithInputNodes:inputNodesNo hiddenNeurons:hiddenNeuronNo outputNeurons:outputNeuronNo];
     
     // Feed the data through the NN
     Matrix *outputVector = [neuralNetwork useNetWithInputs:inputVector andBeta:1.0];
