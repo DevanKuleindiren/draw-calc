@@ -65,7 +65,7 @@
                 NSMutableString *arg2 = [operands pop];
                 NSMutableString *operator = [operators pop];
                 NSMutableString *answer = [self evalBinaryOperator:operator arg1:arg1 arg2:arg2];
-                if ([answer isEqualToString:@"NaN"]) return @"NaN";
+                if ([answer isEqualToString:@"NaN"]) return [NSString stringWithFormat:@"%@ is not a number!", [self replaceDWithDivisionSign:expression]];
                 [operands push:answer];
             }
             [operators push:units[u]];
@@ -78,7 +78,9 @@
         NSMutableString *arg1 = [operands pop];
         NSMutableString *arg2 = [operands pop];
         NSMutableString *operator = [operators pop];
-        [operands push:[self evalBinaryOperator:operator arg1:arg1 arg2:arg2]];
+        NSMutableString *answer = [self evalBinaryOperator:operator arg1:arg1 arg2:arg2];
+        if ([answer isEqualToString:@"NaN"]) return [NSString stringWithFormat:@"%@ is not a number!", [self replaceDWithDivisionSign:expression]];
+        [operands push:answer];
     }
     
     // Finally, replace 'd' with the real division sign, and append the result
