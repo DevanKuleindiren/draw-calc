@@ -8,7 +8,7 @@
 
 #import <UIKit/UIKit.h>
 #import "Debug.h"
-#import "DeepNet.h"
+#import "FNN3Layer.h"
 #import "UIImage+UIImage_PixelInteraction.h"
 #import "ExpressionParser.h"
 

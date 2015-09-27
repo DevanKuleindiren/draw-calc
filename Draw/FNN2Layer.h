@@ -1,5 +1,5 @@
 //
-//  DeepNet.h
+//  FNN2Layer.h
 //  Draw
 //
 //  Created by Devan Kuleindiren on 14/06/2015.
@@ -10,7 +10,7 @@
 #import "Matrix.h"
 #import "Matrix+NeuralNetExtension.h"
 
-@interface DeepNet : NSObject {
+@interface FNN2Layer : NSObject {
     
     Matrix *weights1;
     Matrix *weights2;

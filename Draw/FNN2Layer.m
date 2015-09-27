@@ -1,14 +1,14 @@
 //
-//  DeepNet.m
+//  FNN3Layer.m
 //  Draw
 //
 //  Created by Devan Kuleindiren on 14/06/2015.
 //  Copyright (c) 2015 Devan Kuleindiren. All rights reserved.
 //
 
-#import "DeepNet.h"
+#import "FNN2Layer.h"
 
-@interface DeepNet ()
+@interface FNN2Layer ()
 
 - (void) initWeights:(NSString *)fileString;
 - (Matrix *) useNetP1WithInputs:(Matrix *)inputVectors andBeta:(double)beta;
@@ -16,7 +16,7 @@
 
 @end
 
-@implementation DeepNet
+@implementation FNN2Layer
 
 - (id) initWithInputNodes:(int)noOfInputNodes hiddenNeurons:(int)noOfHiddenNeurons outputNeurons:(int)noOfOutputNeurons {
     self = [super init];

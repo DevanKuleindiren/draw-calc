@@ -11,7 +11,7 @@
 @interface ViewController () {
     
     // The NN to use
-    DeepNet *neuralNetwork;
+    FNN3Layer *neuralNetwork;
     
     // Track whether debug mode is on
     BOOL debugMode;
@@ -31,7 +31,8 @@
 @end
 
 const int inputNodesNo = 785;
-const int hiddenNeuronNo = 20;
+const int hiddenNeuronNo1 = 28;
+const int hiddenNeuronNo2 = 20;
 const int outputNeuronNo = 14;
 
 @implementation ViewController
@@ -44,7 +45,7 @@ const int outputNeuronNo = 14;
     debugMode = NO;
     evaluatedImage = NO;
     [self initialiseOverallBoundVariables];
-    neuralNetwork = [[DeepNet alloc] initWithInputNodes:inputNodesNo hiddenNeurons:hiddenNeuronNo outputNeurons:outputNeuronNo];
+    neuralNetwork = [[FNN3Layer alloc] initWithInputNodes:inputNodesNo hiddenNeurons1:hiddenNeuronNo1 hiddenNeurons2:hiddenNeuronNo2 outputNeurons:outputNeuronNo];
     
     // Prediction text field
     UIView *paddingView = [[UIView alloc] initWithFrame:CGRectMake(0, 0, 15, 20)];
